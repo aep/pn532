@@ -74,14 +74,14 @@ impl Pn532 {
         assert!(payload.len() < 0xfe);
 
         let len = payload.len() as u8 + 1;
-        let len_checksum = (0x100 - len as u16) as u8;
+        let len_checksum = 0u8.wrapping_sub(len);
 
-        // weird ass checksum
-        let mut sum = 0xd4;
+        // calculating checksum
+        let mut checksum = 0u8.wrapping_sub(0xd4);
         for p in payload {
-            sum += p;
+            checksum = checksum.wrapping_sub(*p);
         }
-        sum = (0x100 - (sum & 0xff) as u16) as u8;
+
         let mut b = vec![
             0x00, // sync preamble
             0x00, 0xff,  // start
@@ -90,7 +90,7 @@ impl Pn532 {
         b.push(len_checksum);
         b.push(0xd4); // direction
         b.extend_from_slice(payload);
-        b.push(sum);
+        b.push(checksum);
         b.push(0x00); // postamble
 
         self.i2c.write(&b)
